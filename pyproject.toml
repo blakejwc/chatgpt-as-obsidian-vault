@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "chatgpt-as-obsidian-vault"
+version = "0.1.0"
+description = "Parse and extract content from exports of OpenAI's ChatGPT conversations into Markdown for an Obsidian vault."
+authors = ["Blake Chambers <https://github.com/blakejwc>"]
+license = "BSD 3-Clause License"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+jsonschema = "^4.19.0"
+openai = "^0.27.8"
+
+[tool.poetry.group.dev.dependencies]
+jsonschema = "^4.19.0"
+openai = "^0.27.8"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

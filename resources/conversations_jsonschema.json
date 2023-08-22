@@ -1,0 +1,564 @@
+{
+    "type": "array",
+    "items": {
+        "type": [
+            "object",
+            "null"
+        ],
+        "properties": {
+            "title": {
+                "type": "string"
+            },
+            "create_time": {
+                "type": "number"
+            },
+            "update_time": {
+                "type": "number"
+            },
+            "moderation_results": {
+                "type": "array"
+            },
+            "current_node": {
+                "type": "string"
+            },
+            "plugin_ids": {
+                "anyOf": [
+                    {
+                        "type": "array"
+                    },
+                    {
+                        "type": "null"
+                    }
+                ]
+            },
+            "id": {
+                "type": "string"
+            },
+            "mapping": {
+                "type": [
+                    "object",
+                    "null"
+                ],
+                "patternProperties": {
+                    ".*": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "properties": {
+                            "message": {
+                                "type": [
+                                    "object",
+                                    "null"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "author": {
+                                        "type": [
+                                            "object",
+                                            "null"
+                                        ],
+                                        "properties": {
+                                            "role": {
+                                                "type": "string"
+                                            },
+                                            "name": {
+                                                "anyOf": [
+                                                    {
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "type": "null"
+                                                    }
+                                                ]
+                                            },
+                                            "metadata": {
+                                                "type": [
+                                                    "object",
+                                                    "null"
+                                                ]
+                                            }
+                                        },
+                                        "required": [
+                                            "role",
+                                            "name",
+                                            "metadata"
+                                        ]
+                                    },
+                                    "create_time": {
+                                        "anyOf": [
+                                            {
+                                                "type": "number"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    },
+                                    "update_time": {
+                                        "anyOf": [
+                                            {
+                                                "type": "number"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    },
+                                    "content": {
+                                        "type": [
+                                            "object",
+                                            "null"
+                                        ],
+                                        "properties": {
+                                            "content_type": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "text",
+                                                    "code",
+                                                    "tether_browsing_display",
+                                                    "tether_quote",
+                                                    "system_error",
+                                                    "stderr",
+                                                    "execution_output"
+                                                ]
+                                            }
+                                        },
+                                        "oneOf": [
+                                            {
+                                                "properties": {
+                                                    "content_type": {
+                                                        "const": "text"
+                                                    },
+                                                    "parts": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "required": [
+                                                    "content_type",
+                                                    "parts"
+                                                ]
+                                            },
+                                            {
+                                                "properties": {
+                                                    "content_type": {
+                                                        "const": "code"
+                                                    },
+                                                    "language": {
+                                                        "type": "string"
+                                                    },
+                                                    "text": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "content_type",
+                                                    "language",
+                                                    "text"
+                                                ]
+                                            },
+                                            {
+                                                "properties": {
+                                                    "content_type": {
+                                                        "const": "tether_browsing_display"
+                                                    },
+                                                    "result": {
+                                                        "type": "string"
+                                                    },
+                                                    "summary": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "content_type",
+                                                    "result",
+                                                    "summary"
+                                                ]
+                                            },
+                                            {
+                                                "properties": {
+                                                    "content_type": {
+                                                        "const": "tether_quote"
+                                                    },
+                                                    "url": {
+                                                        "type": "string"
+                                                    },
+                                                    "domain": {
+                                                        "type": "string"
+                                                    },
+                                                    "text": {
+                                                        "type": "string"
+                                                    },
+                                                    "title": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "content_type",
+                                                    "url",
+                                                    "domain",
+                                                    "text",
+                                                    "title"
+                                                ]
+                                            },
+                                            {
+                                                "properties": {
+                                                    "content_type": {
+                                                        "const": "system_error"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "text": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "content_type",
+                                                    "name",
+                                                    "text"
+                                                ]
+                                            },
+                                            {
+                                                "properties": {
+                                                    "content_type": {
+                                                        "const": "stderr"
+                                                    },
+                                                    "text": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "content_type",
+                                                    "text"
+                                                ]
+                                            },
+                                            {
+                                                "properties": {
+                                                    "content_type": {
+                                                        "const": "execution_output"
+                                                    },
+                                                    "text": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "content_type",
+                                                    "text"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "status": {
+                                        "type": "string"
+                                    },
+                                    "end_turn": {
+                                        "anyOf": [
+                                            {
+                                                "type": "boolean"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    },
+                                    "weight": {
+                                        "type": "number"
+                                    },
+                                    "metadata": {
+                                        "type": [
+                                            "object",
+                                            "null"
+                                        ],
+                                        "properties": {
+                                            "timestamp_": {
+                                                "type": "string"
+                                            },
+                                            "message_type": {
+                                                "type": "null"
+                                            },
+                                            "finish_details": {
+                                                "type": [
+                                                    "object",
+                                                    "null"
+                                                ],
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string"
+                                                    },
+                                                    "stop": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "is_complete": {
+                                                "type": "boolean"
+                                            },
+                                            "model_slug": {
+                                                "type": "string"
+                                            },
+                                            "invoked_plugin": {
+                                                "type": [
+                                                    "object",
+                                                    "null"
+                                                ],
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string"
+                                                    },
+                                                    "namespace": {
+                                                        "type": "string"
+                                                    },
+                                                    "plugin_id": {
+                                                        "type": "string"
+                                                    },
+                                                    "http_response_status": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "type",
+                                                    "namespace",
+                                                    "plugin_id",
+                                                    "http_response_status"
+                                                ]
+                                            },
+                                            "attachments": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "url": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "name",
+                                                        "url"
+                                                    ]
+                                                }
+                                            },
+                                            "aggregate_result": {
+                                                "type": [
+                                                    "object",
+                                                    "null"
+                                                ],
+                                                "properties": {
+                                                    "status": {
+                                                        "type": "string"
+                                                    },
+                                                    "run_id": {
+                                                        "type": "string"
+                                                    },
+                                                    "start_time": {
+                                                        "type": "number"
+                                                    },
+                                                    "update_time": {
+                                                        "type": "number"
+                                                    },
+                                                    "code": {
+                                                        "type": "string"
+                                                    },
+                                                    "end_time": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "number"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "final_expression_output": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "in_kernel_exception": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": [
+                                                                    "object",
+                                                                    "null"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "system_exception": {
+                                                        "type": "null"
+                                                    },
+                                                    "messages": {
+                                                        "type": "array"
+                                                    },
+                                                    "jupyter_messages": {
+                                                        "type": "array"
+                                                    },
+                                                    "timeout_triggered": {
+                                                        "type": "null"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "status",
+                                                    "run_id",
+                                                    "start_time",
+                                                    "update_time",
+                                                    "code",
+                                                    "end_time",
+                                                    "final_expression_output",
+                                                    "in_kernel_exception",
+                                                    "system_exception",
+                                                    "messages",
+                                                    "jupyter_messages",
+                                                    "timeout_triggered"
+                                                ]
+                                            },
+                                            "_cite_metadata": {
+                                                "type": [
+                                                    "object",
+                                                    "null"
+                                                ],
+                                                "properties": {
+                                                    "citation_format": {
+                                                        "type": [
+                                                            "object",
+                                                            "null"
+                                                        ],
+                                                        "properties": {
+                                                            "name": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "name"
+                                                        ]
+                                                    },
+                                                    "metadata_list": {
+                                                        "type": "array"
+                                                    },
+                                                    "original_query": {
+                                                        "type": "null"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "metadata_list",
+                                                    "original_query"
+                                                ]
+                                            },
+                                            "command": {
+                                                "type": "string"
+                                            },
+                                            "args": {
+                                                "type": "array",
+                                                "items": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "integer"
+                                                        }
+                                                    ]
+                                                },
+                                                "required": []
+                                            },
+                                            "status": {
+                                                "type": "string"
+                                            },
+                                            "citations": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "start_ix": {
+                                                            "type": "integer"
+                                                        },
+                                                        "end_ix": {
+                                                            "type": "integer"
+                                                        },
+                                                        "metadata": {
+                                                            "type": [
+                                                                "object",
+                                                                "null"
+                                                            ],
+                                                            "properties": {
+                                                                "title": {
+                                                                    "type": "string"
+                                                                },
+                                                                "url": {
+                                                                    "type": "string"
+                                                                },
+                                                                "text": {
+                                                                    "type": "string"
+                                                                },
+                                                                "pub_date": {
+                                                                    "type": "null"
+                                                                }
+                                                            }
+                                                        },
+                                                        "invalid_reason": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "start_ix",
+                                                        "end_ix"
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "recipient": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "id",
+                                    "create_time",
+                                    "update_time",
+                                    "status",
+                                    "end_turn",
+                                    "weight",
+                                    "recipient"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "required": [
+            "title",
+            "create_time",
+            "update_time",
+            "moderation_results",
+            "current_node",
+            "plugin_ids",
+            "id"
+        ]
+    }
+}
