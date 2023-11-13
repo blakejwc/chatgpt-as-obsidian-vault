@@ -1,65 +1,13 @@
+import copy
 import logging
 from dataclasses import dataclass
-from typing import Optional, Union
-from anytree import RenderTree, NodeMixin
+from typing import Dict, List, Optional
+from anytree import RenderTree, NodeMixin, PreOrderIter
 from .types import Conversation, ConversationMapping, MessageRecord
 
 
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
-
-@dataclass
-class ConversationMappingWrapper:
-    """
-    A wrapper for conversation mapping with utility methods and properties.
-    """
-    _mapping: ConversationMapping
-    _root: MessageRecord
-
-    def __init__(self, mapping: ConversationMapping):
-        self._mapping = mapping
-        try:
-            self._root = next((node for node in mapping.values() if not node.parent))
-            logger.debug(f"Found root node on init {self._root}")
-        except StopIteration:
-            raise ValueError("No root node found in mapping")
-        
-    def find_root(self) -> MessageRecord:
-        logger.debug("Finding root node")
-        for node in self._mapping.values():
-            if not node.parent:
-                logger.debug(f"Found root node {node}")
-                return node
-        raise ValueError("No root node found in mapping")
-
-    def __getitem__(self, key):
-        return self._mapping[key]
-    
-    def __iter__(self):
-        return iter(self._mapping)
-    
-    def __len__(self):
-        return len(self._mapping)
-    
-    def __contains__(self, key):
-        return key in self._mapping
-    
-    def __str__(self):
-        return str(self._mapping)
-
-    @property
-    def root(self) -> MessageRecord:
-        return self._root
-    
-    @property
-    def mapping(self) -> ConversationMapping:
-        return self._mapping
-
-
-def wrap_conversation_mapping(mapping: ConversationMapping) -> tuple[MessageRecord, ConversationMappingWrapper]:
-    wrapped_mapping = ConversationMappingWrapper(mapping)
-    return wrapped_mapping.root, wrapped_mapping   
+logger = logging.getLogger(__name__)   
 
 
 @dataclass
@@ -69,13 +17,120 @@ class TraversalNode(NodeMixin):
     """
     name: str
     data: MessageRecord
-    parent: Optional['TraversalNode'] = None
 
     def __str__(self):
-        return self.name
+        return f"TraversalNode(name={self.name}, data=MessageRecord(id={self.data.id}, ...), parent={self.parent}, children={self.children}))"
     
     def __repr__(self):
         return f"<TraversalNode data={self.data.to_dict()}>"
+    
+    @classmethod
+    def from_message_record(cls, msg_record: MessageRecord) -> 'TraversalNode':
+        """Create a TraversalNode from a MessageRecord."""
+        return cls(name=msg_record.id, data=msg_record)
+    
+    @property
+    def message_id(self) -> str:
+        """The message id."""
+        return self.data.id
+    
+    @property
+    def parent_id(self) -> Optional[str]:
+        """The parent message id."""
+        return self.data.parent
+    
+    @property
+    def children_ids(self) -> List[str]:
+        """The children message ids."""
+        return self.data.children.copy()
+
+
+@dataclass
+class ConversationMappingWrapper:
+    """
+    A wrapper for conversation mapping with utility methods and properties.
+    """
+    _record_mapping: ConversationMapping
+    _root_record: MessageRecord
+    node_dict: Dict[str, TraversalNode]
+
+    def __init__(self, mapping: ConversationMapping):
+        self._record_mapping = mapping
+        self.node_dict = {}
+        try:
+            self._root_record = next((record for record in mapping.values() if record.parent is None))
+            logger.debug(f"Found root record {self._root_record.id}: {self._root_record}")
+        except StopIteration:
+            raise ValueError("No root record found in conversation mapping")
+        
+        for new_uuid, new_message_record in mapping.items():
+            new_traversal_node = TraversalNode.from_message_record(new_message_record)
+            logger.debug(f"Created new traversal node {new_traversal_node}")
+            if new_uuid == self._root_record.id:
+                self.node_dict[new_uuid] = new_traversal_node
+                logger.debug(f"Added root traversal node {new_uuid} to node dict with parent={new_traversal_node.parent}")
+            else:
+                self.node_dict[new_uuid] = new_traversal_node
+                logger.debug(f"Added traversal node {new_uuid} to node dict with parent={new_traversal_node.parent}")
+
+        for uuid, message_record in mapping.items():
+            parent_id = message_record.parent
+            traversal_node = self.node_dict[uuid]
+            if parent_id:
+                if parent_id == self._root_record.id:
+                    logger.debug(f"Parent of traversal node {uuid} is root node {self._root_record.id}")                
+                traversal_node.parent = self.node_dict[parent_id]
+                logger.debug(f"Added parent {message_record.parent} to traversal node {uuid}")
+            elif uuid != self._root_record.id:
+                raise ValueError(f"Message record {uuid} has no parent, but is not root record {self._root_record.id}")
+
+        logger.debug(f"Traversal node dictionary initialized with {len(self.node_dict)} nodes and root node {self.node_dict[self._root_record.id]}")
+        
+        # Log the entire node dictionary
+        logger.debug("Traversal node dictionary:")
+        for pre, _, node in RenderTree(self.node_dict[self._root_record.id]):
+            treestr = f"{pre}{node.name}"
+            logger.debug(treestr)
+                
+    def find_root_record(self) -> MessageRecord:
+        """Find the root message record in the mapping and return a deepcopy."""
+        logger.debug("Finding root message record")
+        for record in self._record_mapping.values():
+            if not record.parent:
+                logger.debug(f"Found root message record {record}")
+                return copy.deepcopy(record)
+        raise ValueError("No root message record found in mapping")
+
+    def __getitem__(self, key):
+        return self._record_mapping[key]
+    
+    def __iter__(self):
+        return iter(self._record_mapping)
+    
+    def __len__(self):
+        return len(self._record_mapping)
+    
+    def __contains__(self, key):
+        return key in self._record_mapping
+    
+    def __str__(self):
+        return str(self._record_mapping)
+
+    @property
+    def root_record(self) -> MessageRecord:
+        """A deepcopy of the root node in the mapping."""
+        return copy.deepcopy(self._root_record)
+    
+    @property
+    def record_mapping(self) -> ConversationMapping:
+        """A deepcopy of the mapping."""
+        return copy.deepcopy(self._record_mapping)
+
+
+def wrap_conversation_mapping(mapping: ConversationMapping) -> tuple[MessageRecord, ConversationMappingWrapper]:
+    """Wrap a conversation mapping in a wrapper class."""
+    wrapped_mapping = ConversationMappingWrapper(mapping)
+    return wrapped_mapping.root_record, wrapped_mapping
 
 
 @dataclass
@@ -83,94 +138,38 @@ class ConversationTraversalTree:
     """
     A tree structure to traverse through a conversation.
     """
+    _wrapped_mapping: ConversationMappingWrapper
+    _conversation: Conversation
     root_node: TraversalNode
     current_node: TraversalNode
+    node_dict: Dict[str, TraversalNode]
 
     def __init__(self, conversation: Conversation):
         logger.debug(f"Initializing new traversal tree for conversation {conversation.conversation_id}")
         self._conversation = conversation
-        root_record, self._wrapped_mapping = wrap_conversation_mapping(conversation.mapping)
-        logger.debug(f"Root message record: {root_record}")
-        
-        self.root_node = self.make_traversal_node(root_record, None)
-        self.current_node = self.root_node
-        logger.debug(f"Traversal tree initalized with root node: {self.root_node}")
-        logger.debug(f"Traversal tree initalized with current node: {self.current_node}")
+        self._wrapped_mapping = ConversationMappingWrapper(conversation.mapping)
+        self._set_node_dict_reference(self._wrapped_mapping.node_dict)
 
-    @classmethod
-    def make_traversal_node(cls, message_record: MessageRecord, parent: Optional[TraversalNode] = None) -> TraversalNode:
-        return TraversalNode(message_record.id, parent=parent, data=message_record)
+    def _set_node_dict_reference(self, node_dict: dict[str, TraversalNode]):
+        """Set the node dictionary reference."""
+        self.node_dict = node_dict
+        mapping_root_record = self._wrapped_mapping.find_root_record()
+        self.root_node = self.node_dict[mapping_root_record.id]
+        self.current_node = self.root_node
+        logger.debug(f"Conversation Traversal Tree initalized with root node: {self.root_node}")
 
     @property
-    def conversation(self) -> Conversation:
+    def conversation_ref(self) -> Conversation:
+        """A reference to the conversation."""
         return self._conversation
 
     @property
-    def mapping(self) -> ConversationMappingWrapper:
+    def mapping_ref(self) -> ConversationMappingWrapper:
+        """A reference to the wrapped conversation mapping."""
         return self._wrapped_mapping
-
-    def add_child(self, parent: Union[str, TraversalNode], child: Union[MessageRecord, TraversalNode]):
-        log_child_id = child.id if isinstance(child, MessageRecord) else child.name
-        log_parent_id = parent.id if isinstance(parent, MessageRecord) else parent
-        logger.debug(f"Adding child {log_child_id} of type {type(child)} to parent {log_parent_id} of type {type(parent)}")
-        if isinstance(child, TraversalNode) and child.name == self.root_node.name:
-            logger.debug(f"Child node {child.name} is root node. Parent should be None.")
-            if parent is not None:
-                logger.error(f"Parent node {parent} is not None.")
-                raise ValueError(f"Parent node {parent} is not None.")
-            else:
-                logger.debug(f"Parent node {parent} is None. Child node {child.name} is root node.")
-                return
             
-        if isinstance(parent, str):
-            parent_node = self.find_node(parent)
-        else:
-            logger.debug(f"Parent is not a string. Parent is {parent}")
-            parent_node = parent if isinstance(parent, TraversalNode) else None
-        
-
-        if parent_node is None and isinstance(parent, str):
-            if parent in self.mapping:
-                logger.info(f"Parent node {parent} not found in tree, but found in mapping.")
-                mapping_parent = self.mapping[parent].parent
-                if mapping_parent is not None:
-                    logger.info(f"Parent node {parent} has a parent in mapping.")
-                    self.add_child(mapping_parent, self.mapping[parent])
-                    parent_node = self.find_node(parent)
-                else:
-                    logger.info(f"Parent node {parent} has no parent in mapping. Checking if parent is root node.")
-                    if parent == self.root_node.name:
-                        logger.info(f"Parent node {parent} is root node. Using root node as parent.")
-                        parent_node = self.root_node
-                    else:
-                        raise ValueError(f"Parent node {parent} not found")
-            else:
-                raise ValueError(f"Parent node {parent} not found")
-            
-        if parent_node is None:
-            raise ValueError(f"Parent node {parent} not found")
-
-        child_node = self.make_traversal_node(child, parent_node) if isinstance(child, MessageRecord) else child if isinstance(child, TraversalNode) else None
-        if child_node is None:
-            raise ValueError(f"Child node {child} not found")
-        
-        logger.debug(f"Child node: {child_node}")
-        logger.debug(f"Parent node: {parent_node}")
-        child_node.parent = parent_node
-        logger.debug(f"Child has parent: {child_node.parent.name}")
-        if child_node in parent_node.children:
-            logger.debug(f"Parent has child: {child_node.name}")
-        else:
-            logger.error(f"Parent does not have child: {child_node.name}")
-            # check if child doesn't exists in the coversation
-            if child_node.name not in self._conversation.mapping:
-                logger.exception(f"Child node {child_node.name} not found in conversation mapping.")
-            else:
-                logger.warning(f"Child node {child_node.name} found in conversation mapping. Hacking it in.")
-                parent_node.children = parent_node.children + (child_node,)
-            
-
-    def find_node(self, node_name):
+    def find_node(self, node_name) -> Optional[TraversalNode]:
+        """Find a node by name."""
         logger.debug(f"Finding node {node_name}")
         for node in self.root_node.descendants:
             if node.name == node_name:
@@ -180,62 +179,46 @@ class ConversationTraversalTree:
         return None
 
     def traverse(self):
+        """Traverse through the tree."""
         for pre, _, node in RenderTree(self.root_node):
             logger.debug(f"Traversing node {node.name}")
             yield pre, node
 
     def set_current_node(self, node_name):
+        """Set the current node."""
         logger.debug(f"Attempting to update current node to {node_name}")
         node = self.find_node(node_name)
         if node:
-            logger.debug(f"Found node {node_name}")
             self.current_node = node
+            logger.debug(f"Current node is now {node_name}")
         else:
             logger.debug(f"Node {node_name} not found. Current node not updated.")
 
-    def get_current_node(self) -> str:
-        return self.current_node.name
 
-    def get_current_node_data(self) -> MessageRecord:
-        return self.current_node.data
-    
-
-def build_conversation_traversal_tree(conversation: Conversation) -> ConversationTraversalTree:
-    logger.debug(f"Building traversal tree for conversation {conversation.conversation_id}")
+def find_shortest_and_longest_paths(conversation: Conversation) -> tuple[list[str], list[str], list[list[str]]]:
+    """Find the shortest and longest paths between root and leaf nodes."""
     traversal_tree = ConversationTraversalTree(conversation)
-    logger.debug(f"Traversal tree root node: {traversal_tree.root_node}")
-    logger.debug(f"Traversal tree current node: {traversal_tree.current_node}")
-    for id, message_record in conversation.mapping.items():
-        if id != message_record.id:
-            logger.warn(f"Message record id {id} does not match message record {message_record}")
-        logger.debug(f"Adding message record to traversal tree: {message_record}")
-        if message_record.parent:
-            logger.debug(f"Message record {message_record.id} has parent {message_record.parent}")
-            traversal_tree.add_child(message_record.parent, message_record)
-        
-    return traversal_tree
 
-
-
-# Find shorted and longest paths between root and leaf nodes
-def find_shortest_and_longest_paths(conversation: Conversation) -> tuple[list[str], list[str]]:
-    traversal_tree = build_conversation_traversal_tree(conversation)
-    logger.debug(f"Traversing conversation {conversation.conversation_id}")
     paths = []
-    # traverse through the tree and find all paths
-    for pre, node in traversal_tree.traverse():
-        if not node.children:
-            logger.debug(f"Found leaf node {node.name}")
-            path = [node.name]
-            while node.parent:
-                path.append(node.parent.name)
-                node = node.parent
-            path.reverse()
-            paths.append((pre, path))
+
+    # Helper function to traverse from leaf to root and build the path
+    def build_path_from_leaf(leaf_node: Optional[TraversalNode]) -> List[str]:
+        path: List[str] = []
+        while leaf_node is not None:
+            path.append(leaf_node.name)
+            leaf_node = leaf_node.parent
+        
+        return path[::-1]
+
+    # Traverse tree and build paths for all leaf nodes
+    node: TraversalNode
+    for node in PreOrderIter(traversal_tree.root_node):
+        if not node.children:  # This is a leaf
+            paths.append(build_path_from_leaf(node))
     
-    logger.debug(f"Found {len(paths)} paths")
-    shortest_path = min(paths, key=lambda path: len(path[1]))
-    logger.debug(f"Shortest path: {shortest_path}")
-    longest_path = max(paths, key=lambda path: len(path[1]))
-    logger.debug(f"Longest path: {longest_path}")
-    return shortest_path[1], longest_path[1]
+    # Determine shortest and longest paths
+    shortest_path = min(paths, key=len)
+    longest_path = max(paths, key=len)
+    
+    return shortest_path, longest_path, paths
+
