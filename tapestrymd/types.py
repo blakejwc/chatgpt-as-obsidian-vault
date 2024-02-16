@@ -1,12 +1,10 @@
-import logging
+from .logconfig import setup_logger
 import copy
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Union
 from enum import Enum
 
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 def debug_log_dict(dct: dict, name: str, depth: int = 0):
@@ -19,13 +17,13 @@ def debug_log_dict(dct: dict, name: str, depth: int = 0):
     :param depth: Current depth of the recursion (used for indentation in logging).
     """
     indent = "  " * depth
-    logger.debug(f"{indent}{name}:")
+    logger.trace(f"{indent}{name}:")
 
     for key, value in sorted(dct.items()):
         if isinstance(value, dict):
             debug_log_dict(value, key, depth + 1)
         else:
-            logger.debug(f"{indent}  {key}: {value}")
+            logger.trace(f"{indent}  {key}: {value}")
 
 
 class RoleType(Enum):
@@ -35,6 +33,8 @@ class RoleType(Enum):
     SYSTEM = "system"
     USER = "user"
     ASSISTANT = "assistant"
+    TOOL = "tool"
+    UNKNOWN = "unknown"
 
     def to_json(self) -> str:
         return self.value
@@ -524,6 +524,23 @@ class FinishDetails:
             dct["stop_tokens"] = None
         return cls(**dct)
 
+@dataclass
+class Attachments:
+    """
+    The Attachments class is used to represent the attachments field in the ChatMessageMetadata dataclass.
+    """
+    name: str
+    id: str
+    size: int
+
+    def to_dict(self) -> dict:
+        """Returns a dictionary representation of the dataclass."""
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, dct) -> "Attachments":
+        """Returns an Attachments object from the provided dictionary."""
+        return cls(**dct)
 
 @dataclass
 class ChatMessageMetadata:
@@ -537,6 +554,13 @@ class ChatMessageMetadata:
     finish_details: Union[FinishDetails, None]
     timestamp_: Union[str, None]
     parent_id: Union[str, None]
+    invoked_plugin: Union[str, None]
+    attachments: Union[List[Attachments], None] # TODO: should this be None or an empty list?
+    # TODO: implement a dataclass for the aggregate_results
+    aggregate_result: Union[Dict[str, Any], None]
+    # Example of what the json looks like:
+    # {'aggregate_result': {'status': 'success', 'run_id': '8742332d-a649-4225-9cc5-a25019945e7d', 'start_time': 1691869619.314078, 'update_time': 1691869619.6085324, 'code': '# Importing necessary modules\nimport json\nfrom jsonschema import validate, exceptions\n\n# Loading JSON Schema\nwith open("/mnt/data/conversations_jsonschema.json", "r") as schema_file:\n    schema = json.load(schema_file)\n\n# Loading JSON Data\nwith open("/mnt/data/conversations_of_one.json", "r") as data_file:\n    data = json.load(data_file)\n\n# Validating the JSON data against the schema\nvalidation_errors = []\ntry:\n    validate(instance=data, schema=schema)\nexcept exceptions.ValidationError as e:\n    validation_errors.append(str(e))\n\nvalidation_errors', 'end_time': 1691869619.6085324, 'final_expression_output': '[]', 'in_kernel_exception': None, 'system_exception': None, 'messages': [], 'jupyter_messages': [{'msg_type': 'status', 'parent_header': {'msg_id': 'c9b51a21-238da2197eee0b560753c724_2_1', 'version': '5.3'}, 'content': {'execution_state': 'busy'}}, {'msg_type': 'execute_input', 'parent_header': {'msg_id': 'c9b51a21-238da2197eee0b560753c724_2_1', 'version': '5.3'}}, {'parent_header': {'msg_id': 'c9b51a21-238da2197eee0b560753c724_2_1', 'version': '5.3'}, 'msg_type': 'execute_result', 'content': {'data': {'text/plain': '[]'}}}, {'msg_type': 'status', 'parent_header': {'msg_id': 'c9b51a21-238da2197eee0b560753c724_2_1', 'version': '5.3'}, 'content': {'execution_state': 'idle'}}], 'timeout_triggered': None}, 'is_complete': True, 'message_type': None, 'model_slug': 'gpt-4-code-interpreter', 'parent_id': '05f69fc8-77b7-4c28-b185-b226bc7b22d9', 'timestamp_': 'absolute'}
+    
 
     def to_dict(self) -> dict:
         """Returns a dictionary representation of the dataclass."""
@@ -556,6 +580,14 @@ class ChatMessageMetadata:
                 f"ChatMessageMetadata.from_dict got no `finish_details`. Building FinishDetails from empty dictionary."
             )
             dct["finish_details"] = FinishDetails.from_dict({})
+
+        if "attachments" in dct:
+            dct["attachments"] = [Attachments.from_dict(attachment) for attachment in dct["attachments"]]
+        else:
+            logger.debug(
+                f"ChatMessageMetadata.from_dict got no `attachments`. Setting to None."
+            )
+            dct["attachments"] = None
 
         if "timestamp_" not in dct:
             logger.debug(
@@ -586,6 +618,18 @@ class ChatMessageMetadata:
                 f"ChatMessageMetadata.from_dict got no `parent_id`. Setting to None."
             )
             dct["parent_id"] = None
+
+        if "invoked_plugin" not in dct:
+            logger.debug(
+                f"ChatMessageMetadata.from_dict got no `invoked_plugin`. Setting to None."
+            )
+            dct["invoked_plugin"] = None
+
+        if "aggregate_result" not in dct:
+            logger.debug(
+                f"ChatMessageMetadata.from_dict got no `aggregate_result`. Setting to None."
+            )
+            dct["aggregate_result"] = None
 
         return cls(**dct)
 

@@ -1,13 +1,12 @@
+from .logconfig import setup_logger
 import copy
-import logging
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 from anytree import RenderTree, NodeMixin, PreOrderIter
 from .types import Conversation, ConversationMapping, MessageRecord
 
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)   
+logger = setup_logger(__name__)
 
 
 @dataclass
@@ -65,13 +64,13 @@ class ConversationMappingWrapper:
         
         for new_uuid, new_message_record in mapping.items():
             new_traversal_node = TraversalNode.from_message_record(new_message_record)
-            logger.debug(f"Created new traversal node {new_traversal_node}")
+            logger.trace(f"Created new traversal node {new_traversal_node}")
             if new_uuid == self._root_record.id:
                 self.node_dict[new_uuid] = new_traversal_node
-                logger.debug(f"Added root traversal node {new_uuid} to node dict with parent={new_traversal_node.parent}")
+                logger.trace(f"Added root traversal node {new_uuid} to node dict with parent={new_traversal_node.parent}")
             else:
                 self.node_dict[new_uuid] = new_traversal_node
-                logger.debug(f"Added traversal node {new_uuid} to node dict with parent={new_traversal_node.parent}")
+                logger.trace(f"Added traversal node {new_uuid} to node dict with parent={new_traversal_node.parent}")
 
         for uuid, message_record in mapping.items():
             parent_id = message_record.parent
@@ -80,9 +79,9 @@ class ConversationMappingWrapper:
                 if parent_id == self._root_record.id:
                     logger.debug(f"Parent of traversal node {uuid} is root node {self._root_record.id}")                
                 traversal_node.parent = self.node_dict[parent_id]
-                logger.debug(f"Added parent {message_record.parent} to traversal node {uuid}")
+                logger.debug(f"Added parent {message_record.parent} to traversal node {traversal_node}")
             elif uuid != self._root_record.id:
-                raise ValueError(f"Message record {uuid} has no parent, but is not root record {self._root_record.id}")
+                raise ValueError(f"Message record {message_record} has no parent, but is not root record {self._root_record.id}")
 
         logger.debug(f"Traversal node dictionary initialized with {len(self.node_dict)} nodes and root node {self.node_dict[self._root_record.id]}")
         
