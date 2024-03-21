@@ -555,12 +555,41 @@ class ChatMessageMetadata:
     timestamp_: Union[str, None]
     parent_id: Union[str, None]
     invoked_plugin: Union[str, None]
-    attachments: Union[List[Attachments], None] # TODO: should this be None or an empty list?
+    attachments: Union[List[Attachments], None] # TODO: Seems like it doesn't always exist, but the question is whether it will ever be an empty list. Will there be a case where it's None?
     # TODO: implement a dataclass for the aggregate_results
     aggregate_result: Union[Dict[str, Any], None]
     # Example of what the json looks like:
     # {'aggregate_result': {'status': 'success', 'run_id': '8742332d-a649-4225-9cc5-a25019945e7d', 'start_time': 1691869619.314078, 'update_time': 1691869619.6085324, 'code': '# Importing necessary modules\nimport json\nfrom jsonschema import validate, exceptions\n\n# Loading JSON Schema\nwith open("/mnt/data/conversations_jsonschema.json", "r") as schema_file:\n    schema = json.load(schema_file)\n\n# Loading JSON Data\nwith open("/mnt/data/conversations_of_one.json", "r") as data_file:\n    data = json.load(data_file)\n\n# Validating the JSON data against the schema\nvalidation_errors = []\ntry:\n    validate(instance=data, schema=schema)\nexcept exceptions.ValidationError as e:\n    validation_errors.append(str(e))\n\nvalidation_errors', 'end_time': 1691869619.6085324, 'final_expression_output': '[]', 'in_kernel_exception': None, 'system_exception': None, 'messages': [], 'jupyter_messages': [{'msg_type': 'status', 'parent_header': {'msg_id': 'c9b51a21-238da2197eee0b560753c724_2_1', 'version': '5.3'}, 'content': {'execution_state': 'busy'}}, {'msg_type': 'execute_input', 'parent_header': {'msg_id': 'c9b51a21-238da2197eee0b560753c724_2_1', 'version': '5.3'}}, {'parent_header': {'msg_id': 'c9b51a21-238da2197eee0b560753c724_2_1', 'version': '5.3'}, 'msg_type': 'execute_result', 'content': {'data': {'text/plain': '[]'}}}, {'msg_type': 'status', 'parent_header': {'msg_id': 'c9b51a21-238da2197eee0b560753c724_2_1', 'version': '5.3'}, 'content': {'execution_state': 'idle'}}], 'timeout_triggered': None}, 'is_complete': True, 'message_type': None, 'model_slug': 'gpt-4-code-interpreter', 'parent_id': '05f69fc8-77b7-4c28-b185-b226bc7b22d9', 'timestamp_': 'absolute'}
-    
+    is_user_system_message: Union[bool, None]
+    user_context_message_data: Union[Dict[str, Any], None]
+    # Example of what the text looks like:
+    # [tapestrymd.types]TRACE:             about_model_message: ## Cues
+    #    
+    # "generate and approach for yourself”:
+    # ”## Methodology
+    # 1. Task Breakdown:
+    #  Start with the overarching objective and distill it into granular, actionable sub-tasks for clarity and manageability.
+    # 2. Domain Alignment:
+    # Associate each sub-task with its corresponding domain, highlighting the fundamental principles or techniques it employs.
+    # 3. Operational Sequence:
+    # Strategize the order of execution, keeping in mind interdependencies and workflow optimization for the sub-tasks.
+    # 4. Adaptive Refinement:
+    # During each phase, actively monitor LLM outputs. Offer feedback and adjust directions to enhance accuracy and precision.
+    # 5. Holistic Assembly:
+    # Synthesize the results of individual sub-tasks to formulate the comprehensive and intended outcome.”
+    #   
+    # "compress excerpt" interpretation:
+    # "Make the excerpt of text I've included, and delineated with triple backticks, as few characters as possible by using strategies and techniques like sentence reorganizing with contextually equivalent replacements, abbreviations, aggressive devoweling, typographical tricks, UTF-8 alternative characters and symbols, substitution with specialized notation from analogous mathematical and scientific concepts, cue and keyword supplementation for style and language simplification — forgo any human readability, the only requirement is that it maintains the contextual nuances and unique information in a form that makes the text usable to ChatGPT."
+    # [tapestrymd.types]TRACE:             about_user_message: Your focused domains:
+    # [KRR]:[1(KR&R)-1a(Ont:FrmlRep,concepts,rels)-1b(SmNtwks:GrphStrcts,knwldg)-1c(DscLog:Frm,con,rol,indv)-1d(RbSys:Rls,inf,dc)-1e(Frms:DtaStrcts,strtSitu)-1f(NmLog:Rsn,incmpInf)-1g(BelRev:Mthd,bel,upd,newInf)];
+    # [PMA]:[4(Pt,M&A)-4a(PtRecog:ID,rgl,dta)-4b(ConMetr:Und,ids,trms)-4c(AnlRsn:Prb,sml,sol)-4d(StrMap:Cor,doms)-4e(Gest:Pt,whl,sm,prt)];
+    # [EMRG]:[5(Erg)-5a(SO:SponOrd,lclInt)-5b(Syn:CoopInt,otcm,indComp)-5c(PhTr:SudSft,bev,chng,cond)-5d(CelAuto:MathMdl,cls,evl,lclrl)];
+    # [DSIE]:[6(DSIE,SD,Rx)-6a(DtCl:Rmv,corct,inacc)-6b(ETL:Prcs,dta,anl)-6c(DBNorm:Org,dta,rdncy,intg)-6d(RegEx:Ptrn,charComb,strs)-6e(SD:Struct,dta,acc,usbl)];
+    # [CODE_TH]:[7(CTh)-7a(LinC:Code,linAlg)-7b(HD:DifPos,strs,lngth)-7c(ParChk:ErrDet,mech)-7d(MLD:DecodeMthd,errPrb)-7e(TbC&LDPC:ErrCorct,prfmnc)];
+    # [SFSI]:[8(Sum&FS)-8a(ExSum:Pick,sntnc,origCnt,sum)-8b(AbSum:Gen,sum,sameInf)-8c(FzLog:LogSys,val,tr,fls)-8d(FzSt:Set,elem,deg,mem)-8e(SimMtrcs:Msr,qunt,sim,dtPts)];
+    # [ERDS]:[9(ErrCorct&ERDS)-9a(BlkC:ErrCorct,dta,blks)-9b(ConvC:Trnsf,mbit,nbit,sym)-9c(RSCode:Blk,ErrCorct,dgtlComm)-9d(Cksum:Mthd,errDet,stg,trnsm)-9e(ErrResDS:Strcts,errs,corr)];
+
+    # [Preferences]:[1(Markdown Formatting)&&2(High Divergent Thinking)]
 
     def to_dict(self) -> dict:
         """Returns a dictionary representation of the dataclass."""
@@ -581,8 +610,13 @@ class ChatMessageMetadata:
             )
             dct["finish_details"] = FinishDetails.from_dict({})
 
-        if "attachments" in dct:
+        if "attachments" in dct and dct["attachments"] is not None:
             dct["attachments"] = [Attachments.from_dict(attachment) for attachment in dct["attachments"]]
+        elif "attachments" in dct and dct["attachments"] is None:
+            logger.debug(
+                f"ChatMessageMetadata.from_dict got `attachments` as None. Setting to None."
+            )
+            dct["attachments"] = None
         else:
             logger.debug(
                 f"ChatMessageMetadata.from_dict got no `attachments`. Setting to None."
@@ -630,6 +664,12 @@ class ChatMessageMetadata:
                 f"ChatMessageMetadata.from_dict got no `aggregate_result`. Setting to None."
             )
             dct["aggregate_result"] = None
+
+        if "is_user_system_message" not in dct:
+            logger.debug(
+                f"ChatMessageMetadata.from_dict got no `is_user_system_message`. Setting to None."
+            )
+            dct["is_user_system_message"] = None
 
         return cls(**dct)
 
